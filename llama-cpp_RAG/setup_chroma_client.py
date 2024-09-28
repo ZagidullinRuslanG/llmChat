@@ -1,6 +1,5 @@
 import chromadb
 from chromadb.config import DEFAULT_TENANT, DEFAULT_DATABASE, Settings
-from chromadb.utils.embedding_functions import OllamaEmbeddingFunction, emb
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -20,16 +19,11 @@ client = chromadb.PersistentClient(
 
 # print(client.get_collection('docs').get())
 
-ef = OllamaEmbeddingFunction(
-    model_name="nomic-embed-text",
-    url="http://localhost:11434/api/embeddings",
-)
-
 client.reset()
 
 # client.delete_collection('docs')
 
-client.get_or_create_collection('docs', embedding_function=ef)
+client.get_or_create_collection('docs')
 print(client.get_collection('docs').get(where={'language': 'en'}))
 
 print('Chroma client created')

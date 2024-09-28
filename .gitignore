@@ -5,3 +5,13 @@
 /data/weights/
 /data/PDFs/БЖД merged.pdf
 /data/index/
+/.venv
+/new_env
+*.env
+/old_tests
+/_temp
+*chroma
+*__pycache__
+flagged
+gradio_cached_examples
+/data
