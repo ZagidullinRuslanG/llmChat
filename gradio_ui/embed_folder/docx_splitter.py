@@ -1,11 +1,18 @@
 from docx import Document as DocX
 from langchain_core.documents import Document as ChromaDocument
 
+import cv2
+import numpy as np
+import os
+from config import Config as cfg
+from uuid import uuid4
+
 def reset_paragraph_dict():
     return {'header': 'None', 'body': []}
 
 def name_to_id(doc_name, ind):
-    return f'{doc_name}_{ind}'
+    # return f'{doc_name}_{ind}'
+    return str(uuid4())
 
 
 def split_doc_from_headers(doc_path):
@@ -44,9 +51,24 @@ def split_doc_from_headers(doc_path):
 
         current_id = name_to_id(doc_path, ind)
 
+        print(paragraph['header'])
+
+        header_img = np.zeros(shape=(720,1280,3),dtype=np.uint8)
+        header_img.fill(255)
+        header_img = cv2.putText(header_img, paragraph['header'], (100, 300), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+
+
+
+        image_name = f'{current_id}.jpg'
+        image_path = os.path.join(cfg.IMAGE_FOLDER, image_name)
+        # print(image_path)
+
+        cv2.imwrite(image_path, header_img)
+
+
         current_doc = ChromaDocument(
             page_content=full_text,
-            metadata = {'source': 'document'},
+            metadata = {'source': 'document', 'image': image_name},
             id = current_id
         )
 
@@ -56,20 +78,13 @@ def split_doc_from_headers(doc_path):
     return docs_list, ids_list
 
 
-    # for pl in paragraph_list:
-    #     print(pl['header'])
-
-    #     for body in pl['body']:
-    #         print(f'\t{body[:32]}')
-
 if __name__ == '__main__':
-    # doc_path = r'C:\Work\Gazprom\LLM\llmChat\data\original_docx\cand.docx'
 
-    doc_path = r'C:\Work\Gazprom\LLM\llmChat\data\original_docx\event.docx'
+    doc_path = r'C:\Work\Gazprom\LLM\llmChat\data\original_docx\avr.docx'
 
     docs, ind = split_doc_from_headers(doc_path)
 
     for doc in docs:
-        print(doc)
+        print(doc.metadata)
 
 

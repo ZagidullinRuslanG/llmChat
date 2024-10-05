@@ -6,20 +6,15 @@ query_wrapper_prompt = PromptTemplate(
     "GPT4 Correct User: {query_str}<|end_of_turn|>GPT4 Correct Assistant: "
 ) # openchat
 
+
 class Config:
 
-    # Chroma
+    # Путь сохранения эмбеддингов
     CHROMA_PATH = r"gradio_ui\chroma"
 
-
-    # MODEL
-    MODEL_PATH = r"C:\Work\Gazprom\LLM\llmChat\data\weights\openchat_3.5.Q5_K_M.gguf"
-    SECOND_MODEL_PATH = r"C:\Work\Gazprom\LLM\llmChat\data\weights\starling-lm-7b-alpha.Q5_K_M.gguf"
-    N_CTX = 16384 // 2
-    N_BATCH = 9000 // 2
-    # N_BATCH = 512
-    N_CTX_PROMPT = 6000  // 2
-    NODE_CTX = 256
+    
+    # Настройка Ollama
+    START_MODEL_NAME = 'llama3.1:latest'
     
     # RETRIEVER
     SIMILARITY_TOP_K = 10
@@ -32,9 +27,12 @@ class Config:
     N_GPU_LAYERS = -1
 
     # EMDEDDINGS
+    LOAD_EMBEDDINGS = True # Поставить на False для ускорения загрузки интерфейса, но эмбед не будет работать
     EMBEDDING_MODEL_PATH = r"C:\Work\Gazprom\LLM\llmChat\data\weights\intfloat_multilingual-e5-large"
     EMBEDDING_MODEL_KWARGS = {"device": "cuda:0"}
-    SCORE_THRESHOLD_MAX = 1
+    COLLECTION_NAME = 'docs'
+
+    IMAGE_FOLDER = r'C:\Work\Gazprom\LLM\llmChat\gradio_ui\pictures'
 
     # QUERY ENGINE
     STREAMING = True
@@ -53,3 +51,23 @@ class Config:
     AVAILABLE_CHAT_TYPES = [ChatMode.CONDENSE_PLUS_CONTEXT,
                             ResponseMode.SIMPLE_SUMMARIZE,
                             ]
+    
+
+
+    # Настройки llama-cpp (не имеют влияния)
+    
+    # Путь модели llama-cpp
+    MODEL_PATH = r"C:\Work\Gazprom\LLM\llmChat\data\weights\openchat_3.5.Q5_K_M.gguf"
+    SECOND_MODEL_PATH = r"C:\Work\Gazprom\LLM\llmChat\data\weights\starling-lm-7b-alpha.Q5_K_M.gguf"
+    
+    # Контекст 
+    N_CTX = 16384 // 2
+
+    # Батчи
+    N_BATCH = 9000 // 2
+    
+    # Контекст промпта
+    N_CTX_PROMPT = 6000  // 2
+    
+    # Node контекст
+    NODE_CTX = 256

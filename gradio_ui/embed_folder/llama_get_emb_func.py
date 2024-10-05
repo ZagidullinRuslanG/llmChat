@@ -3,6 +3,8 @@ from typing import List
 from langchain_community.embeddings.llamacpp import LlamaCppEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 
+from config import Config as cfg
+
 class LlamaCppEmbeddings_(LlamaCppEmbeddings):
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed a list of documents using the Llama model.
@@ -31,8 +33,8 @@ class LlamaCppEmbeddings_(LlamaCppEmbeddings):
 
 def get_llama_cpp_embeddings():
 
-    embed_model_path = r"C:\Work\Gazprom\LLM\llmChat\data\weights\intfloat_multilingual-e5-large"
-    embed_model_path_kwargs = {"device": "cuda:0"}
+    embed_model_path = cfg.EMBEDDING_MODEL_PATH
+    embed_model_path_kwargs = cfg.EMBEDDING_MODEL_KWARGS
 
     # embeddings = LlamaCppEmbeddings_(
     #     model_path=model_path,

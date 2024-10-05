@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 
+
 def get_selected_from_df(selected_index: gr.SelectData, dataframe_origin):
     val = dataframe_origin.iloc[selected_index.index[0]]
 
@@ -15,12 +16,11 @@ def get_selected_from_df(selected_index: gr.SelectData, dataframe_origin):
 
 def get_embed_ui():
 
+    if (not cfg.LOAD_EMBEDDINGS):
+        return
+
     with gr.Blocks(fill_height=True) as ui:
         file_input = gr.File(label="Загрузить документы", file_count = "multiple", file_types=['docx'])
-        print_button = gr.Button("Показать разделение")
-        uploaded_files = gr.Textbox(value='Разделение документов')
-        print_button.click(update_output, inputs=[file_input], outputs=[uploaded_files])
-
 
         embed_button = gr.Button('Вычислить эмбеддинги')
         clear_vectorstore_button = gr.Button('Очистить БД')
@@ -41,7 +41,8 @@ def get_embed_ui():
         gr_df.select(get_selected_from_df, inputs = [gr_df], outputs = None)
 
 
-        gr.Button("Test")
+        df_update_button = gr.Button("Обновить таблицу")
+        df_update_button.click(fn = get_df, outputs=[gr_df])
 
 
         return ui

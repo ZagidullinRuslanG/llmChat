@@ -16,9 +16,11 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 import gradio as gr
 
 from embed_folder.embed_script import *
+from chat_folder.chat_class import LLMWithHistoryAndContext
+from chat_folder.terminal_parse import *
 
+from time import perf_counter
 
-SCORE_THRESHOLD_MAX = cfg.SCORE_THRESHOLD_MAX
 
 model_path = r'C:\Work\Gazprom\LLM\llmChat\data\weights\starling-lm-7b-alpha.Q5_K_M.gguf'
 
@@ -36,55 +38,105 @@ model_path = r'C:\Work\Gazprom\LLM\llmChat\data\weights\starling-lm-7b-alpha.Q5_
 #     verbose=True
 # )
 
-llm = ChatOllama(
-    model="llama3.1",
-    temperature=0.3, 
-    # num_predict = 128,
-)
+# llm = ChatOllama(
+#     model="llama3.1",
+#     temperature=0.3, 
+#     # num_predict = 128,
+# )
 
 
-# template = """You are senior python developer with great expirience in gradio and LLM."""
+# template = """You are helpfull assistant."""
 
-template = """You are helpfull assistant."""
+# chat_prompt = ChatPromptTemplate.from_messages(
+#     [
+#         ("system", template),
+#         MessagesPlaceholder(variable_name="chat_history"),
+#         ("human", "{input}"),
+#     ]
+# )
 
-chat_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", template),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-    ]
-)
+# chain = (chat_prompt | llm)
 
-chain = (chat_prompt | llm)
+# demo_ephemeral_chat_history_for_chain = ChatMessageHistory()
 
-demo_ephemeral_chat_history_for_chain = ChatMessageHistory()
+# chain_with_message_history = RunnableWithMessageHistory(
+#     chain,
+#     lambda session_id: demo_ephemeral_chat_history_for_chain,
+#     input_messages_key="input",
+#     history_messages_key="chat_history",
+# )
 
-chain_with_message_history = RunnableWithMessageHistory(
-    chain,
-    lambda session_id: demo_ephemeral_chat_history_for_chain,
-    input_messages_key="input",
-    history_messages_key="chat_history",
-)
+model = None
+
+def update_model_from_config(
+        model_dropdown: str, sys_prompt: str, glossary: str, 
+        temp: float, n_nodes_ctx: int, max_threshold_ctx: int):
+
+
+    model_name = model_dropdown.split(' / ')[0]
+    
+    global model
+    model = LLMWithHistoryAndContext(
+        model_name = model_name,
+        system_prompt = sys_prompt,
+        glossary = glossary,
+        temperature = temp,
+        n_nodes_ctx = n_nodes_ctx,
+        max_threshold_ctx = max_threshold_ctx,
+        )
+    
+    print(f"""Model updated with arguments:
+        {model_dropdown=}
+        {sys_prompt=}
+        {glossary=}
+        {temp=}
+        {n_nodes_ctx=}
+        {max_threshold_ctx=}""")
 
 
 embed_context_log = "None"
 prompt_log = "None"
 
+token_generation_speed = 0.0
+model_loading_time = 0.0
+
 
 def stream_response(*args):
 
-    input, history, temperature, sys_prompt, glossary, n_nodes_ctx = args
+    start_model_loading = perf_counter()
 
-    global embed_context_log
+    input_text, history, temperature, sys_prompt, glossary, n_nodes_ctx, max_threshold_ctx = args
 
-    full_context = get_context_text(input, n_nodes_ctx, SCORE_THRESHOLD_MAX)
+    global embed_context_log, token_generation_speed, model_loading_time
 
-    embed_context_log = format_context_to_log(full_context)
+    # full_context = get_context_text(input_text, n_nodes_ctx, max_threshold_ctx)
 
-    if input is not None:
-        partial_message = '<img src="https://images.unsplash.com/photo-1727199204795-9607950eff99?q=80&w=2563&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D">\n'
-        # ChatInterface struggles with rendering stream
-        for response in chain_with_message_history.stream({"input": input}, {"configurable": {"session_id": "unused"}}):
+    # embed_context_log = format_context_to_log(full_context)
+
+    # full_context = model.rag_retriever(input_text)
+    # embed_context_log = format_context_to_log(full_context)
+
+    # context_image = get_context_image(full_context)
+    # print(context_image)
+
+    if not (input_text is None):
+
+        partial_message = ''
+
+        # if not (context_image is None):
+        #     partial_message += f'<img src="{context_image}">\n'
+
+        time_start_generation = None
+
+        response_stream = model.stream(input_text)
+
+        n_tokens_generated = 0
+
+        for response in response_stream:
+
+            if time_start_generation is None:
+                time_start_generation = perf_counter()
+                model_loading_time = perf_counter() - start_model_loading
 
             response_chunk = ""
 
@@ -97,6 +149,10 @@ def stream_response(*args):
 
             # print(response_chunk, end = '')
 
+            n_tokens_generated += 1
+
+            token_generation_speed = n_tokens_generated / (perf_counter() - time_start_generation) 
+
             yield partial_message
 
 
@@ -107,3 +163,9 @@ def is_user_dev(user):
 def update_embed_log(timer):
     
     return embed_context_log, embed_context_log
+
+
+def chat_update():
+    log_str = f'Model loading time: <b>{model_loading_time:.2f} second(s)</b><br>Generation speed: <b>{token_generation_speed:.3f} tokens / second</b><br>{get_ollama_loaded_status()}'
+
+    return log_str
