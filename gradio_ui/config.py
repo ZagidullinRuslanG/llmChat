@@ -61,7 +61,7 @@ class Config:
     SECOND_MODEL_PATH = r"C:\Work\Gazprom\LLM\llmChat\data\weights\starling-lm-7b-alpha.Q5_K_M.gguf"
     
     # Контекст 
-    N_CTX = 16384 // 2
+    N_CTX = 1024 * 8
 
     # Батчи
     N_BATCH = 9000 // 2

@@ -81,6 +81,10 @@ def get_ollama_loaded_status() -> list:
         line_data = f'{line[NAME:ID].strip()} / {line[SIZE:PROCESSOR].strip()} / [{line[ID:SIZE].strip()}] | {line[PROCESSOR:UNTIL].strip()}'
         
         return line_data
+    
+
+def cmd_ollama_stop_model(model_str):
+    subprocess.run(['ollama', 'stop', model_str], stdout=subprocess.PIPE)
 
 
 if __name__ == '__main__':

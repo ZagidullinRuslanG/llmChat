@@ -33,6 +33,8 @@ def get_chat_ui():
             glossary = gr.Textbox(label='Словарь', value=GLOSSARY)
             temp = gr.Slider(minimum=0, maximum=1, step=0.05, value=cfg.TEMPERATURE, label='Температура')
 
+            n_ctx = gr.Slider(minimum=1024, maximum=1024*126, step=1024, value=cfg.N_CTX, label='Размер окна контекста')
+
             n_nodes_ctx = gr.Slider(minimum=0, maximum=cfg.SIMILARITY_TOP_K+20, step=1, value=cfg.SIMILARITY_TOP_K, label='Количество нод контекста')
             max_threshold_ctx = gr.Slider(minimum=0, maximum=1, step=0.01, value=cfg.SIMILARITY_CUTOFF, label='Максимальное несоответствие контекста')
 
@@ -43,12 +45,23 @@ def get_chat_ui():
             update_config_btn = gr.Button(value='Обновить конфиг')
             update_config_btn.click(fn = update_model_from_config, inputs=[
                 model_dropdown,
-                sys_prompt, glossary, temp, n_nodes_ctx, max_threshold_ctx
+                sys_prompt, glossary, temp, n_nodes_ctx, max_threshold_ctx, n_ctx
                 ])
             
 
-            flush_cache_btn = gr.Button(value = 'Очистить VRAM')
+            flush_cache_btn = gr.Button(value = 'Очистить текущий VRAM')
             flush_cache_btn.click(fn = flush_VRAM)
+
+            stop_ollama_model_btn = gr.Button(value = 'Остановить модель Ollama')
+            stop_ollama_model_btn.click(stop_ollama_model)
+
+            flush_VRAM_after_use = gr.Checkbox(value=True, label='Очищать VRAM после запроса за эмбеддингами')
+            flush_VRAM_after_use.change(fn = change_flush_after_use, inputs=[flush_VRAM_after_use])
+
+            preload_ollama_model_btn = gr.Button(value='Предзагрузка модели')
+            preload_ollama_model_btn.click(fn = preload_ollama_model)
+
+            # slider
             
 
         with gr.Accordion("Контекст", open=False):
@@ -80,14 +93,15 @@ def get_chat_ui():
 
         chat.load(fn = update_model_from_config, inputs=[
             model_dropdown,
-            sys_prompt, glossary, temp, n_nodes_ctx, max_threshold_ctx
+            sys_prompt, glossary, temp, n_nodes_ctx, max_threshold_ctx, n_ctx
             ])
         
 
         header_log = gr.Markdown(chat_update())
-        # header_log_timer = gr.Timer(0.25)
-        # header_log_timer.tick(fn = chat_update, outputs=[header_log])
+
+        header_log_timer = gr.Timer(1)
+        header_log_timer.tick(fn = chat_update, outputs=[header_log])
             
-        chat.chatbot.change(fn = chat_update, outputs=[header_log])
+        # chat.chatbot.change(fn = chat_update, outputs=[header_log])
             
         return block

@@ -29,22 +29,28 @@ class InMemoryHistory(BaseChatMessageHistory, BaseModel):
 
 
 class LLMWithHistoryAndContext:
-    def __init__(self, model_name, system_prompt, glossary, temperature, n_nodes_ctx, max_threshold_ctx):
+    def __init__(self, model_name, system_prompt, glossary, temperature, n_nodes_ctx, max_threshold_ctx, n_ctx):
         self.model = ChatOllama(
             model = model_name,
             temperature=temperature, 
             # num_predict = 128,
             verbose=True,
             keep_alive=-1,
-            num_ctx = 10_000,
+            num_ctx = n_ctx,
             
         )
+
+        self.model_name = model_name
+
+        self.current_context = []
 
         self.n_nodes_ctx = n_nodes_ctx
         self.max_threshold_ctx = max_threshold_ctx
 
         self.store = {}
         self.rag_retriever = RunnableLambda(self.rag_retriever)
+
+        self.flush_after_use = True
 
         # prompt = ChatPromptTemplate.from_messages(
         #     [
@@ -126,8 +132,14 @@ class LLMWithHistoryAndContext:
             return []
         
         full_context = get_context_text(query, k = self.n_nodes_ctx, score_max_thresh = self.max_threshold_ctx)
-        flush_VRAM()
+
+        if (self.flush_after_use):
+            flush_VRAM()
+
         print(full_context)
+
+        self.current_context = full_context
+
         return [doc for doc, score in full_context]
     
 

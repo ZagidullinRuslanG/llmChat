@@ -21,8 +21,11 @@ import gc
 
 def flush_VRAM():
 
+    print('Flushing VRAM...')
     gc.collect()
     torch.cuda.empty_cache()
+    gr.Info('VRAM flushed')
+    print('VRAM flushed')
 
 def update_output(files):
     if not files:

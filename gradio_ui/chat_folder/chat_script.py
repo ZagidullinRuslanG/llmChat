@@ -70,7 +70,8 @@ model = None
 
 def update_model_from_config(
         model_dropdown: str, sys_prompt: str, glossary: str, 
-        temp: float, n_nodes_ctx: int, max_threshold_ctx: int):
+        temp: float, n_nodes_ctx: int, max_threshold_ctx: int,
+        n_ctx: int):
 
 
     model_name = model_dropdown.split(' / ')[0]
@@ -83,6 +84,7 @@ def update_model_from_config(
         temperature = temp,
         n_nodes_ctx = n_nodes_ctx,
         max_threshold_ctx = max_threshold_ctx,
+        n_ctx = n_ctx
         )
     
     print(f"""Model updated with arguments:
@@ -91,7 +93,8 @@ def update_model_from_config(
         {glossary=}
         {temp=}
         {n_nodes_ctx=}
-        {max_threshold_ctx=}""")
+        {max_threshold_ctx=}
+        {n_ctx=}""")
 
 
 embed_context_log = "None"
@@ -123,9 +126,6 @@ def stream_response(*args):
 
         partial_message = ''
 
-        # if not (context_image is None):
-        #     partial_message += f'<img src="{context_image}">\n'
-
         time_start_generation = None
 
         response_stream = model.stream(input_text)
@@ -137,6 +137,16 @@ def stream_response(*args):
             if time_start_generation is None:
                 time_start_generation = perf_counter()
                 model_loading_time = perf_counter() - start_model_loading
+
+                current_context = model.current_context
+                embed_context_log = format_context_to_log(current_context)
+                context_image = get_context_image(current_context)
+
+                print(f'{context_image=}')
+
+                if not (context_image is None):
+                    
+                    partial_message += f'<img src="{context_image}">\n'
 
             response_chunk = ""
 
@@ -169,3 +179,17 @@ def chat_update():
     log_str = f'Model loading time: <b>{model_loading_time:.2f} second(s)</b><br>Generation speed: <b>{token_generation_speed:.3f} tokens / second</b><br>{get_ollama_loaded_status()}'
 
     return log_str
+
+def stop_ollama_model():
+    cmd_ollama_stop_model(model.model_name)
+    gr.Info(f'Ollama model {model.model_name} stopped')
+
+
+def change_flush_after_use(flag: bool):
+    model.flush_after_use = flag
+    gr.Info(f'Flush after use set to {model.flush_after_use}')
+
+
+def preload_ollama_model():
+    model.model.invoke("")
+    gr.Info(f'Ollama model preloaded')
