@@ -10,12 +10,8 @@ import os
 import re
 import tqdm
 import json
-
-
-url = r'C:\Work\Gazprom\LLM\llmChat\data\original_docx\bot\Кандидаты.pdf'
-PICTURE_FOLDER = r'C:/Work/Gazprom/LLM/llmChat/gradio_ui/pictures/'
-doc_name = 'Кандидаты'
-
+from langchain_core.documents import Document as ChromaDocument
+from uuid import uuid4
 
 UPPER_BOUNDARY = 810
 LOWER_BOUNDARY = 53
@@ -111,7 +107,7 @@ class ImageWriter_named(ImageWriter):
         path = os.path.join(self.outdir, name)
         return name, path
 
-def parse_page_layout(page_layout, page_number: int, iw: ImageWriter_named, verbose = False):
+def parse_page_layout(page_layout, page_number: int, iw: ImageWriter_named, doc_name: str, verbose = False):
 
     elements = []
 
@@ -181,115 +177,6 @@ def parse_page_layout(page_layout, page_number: int, iw: ImageWriter_named, verb
 
 
     return json_elements
-
-# def join_pdf_data(data):
-
-#     all_elements = []
-#     current_element = []
-
-
-#     current_content_block = []
-#     last_page_number_start = None
-#     last_page_number_end = None
-
-#     current_text_block = []
-
-#     for element in data:
-
-#         if element['type'] == 'image':
-
-#             # current_content_block.append({'type': 'text', 'content': current_text_block})
-#             current_content_block.append(current_text_block)
-#             current_content_block.append(element)
-
-#             current_text_block = []
-#             continue
-
-#         if (element['is_header']):
-
-#             current_content_block.append(current_text_block)
-#             current_element.append(current_content_block)
-#             all_elements.append(current_element)
-    
-#             current_element = []
-#             current_content_block = []
-#             current_text_block = []
-
-#             current_content_block.append({
-#                 'type': 'header', 
-#                 'content': element
-#             })
-
-#             continue
-
-#         # current_text_block += '\n' + element['content']
-#         current_text_block.append(element)
-    
-
-
-#     all_elements.append(current_element)
-
-    
-#     for elem in all_elements:
-#         print(elem)
-
-
-#     return
-
-
-# def join_pdf_data(data):
-
-#     all_elements = []
-
-#     current_text_block = []
-
-#     current_content_block = []
-
-#     for element in data:
-
-#         if element['type'] == 'image':
-
-#             # current_content_block.append({'type': 'text', 'content': current_text_block})
-#             current_content_block.append({'type': 'text_block', 'content': current_text_block})
-#             current_content_block.append(element)
-
-#             current_text_block = []
-#             continue
-
-#         if (element['is_header']):
-
-#             current_content_block.append({'type': 'text_block', 'content': current_text_block})
-            
-#             contents = []
-
-#             content_block = {
-#                 'header': current_content_block[0]['content'],
-#                 'content': [ccb for ccb in current_content_block[1:]]
-#             }
-
-#             all_elements.append(content_block)
-    
-#             current_content_block = []
-#             current_text_block = []
-
-#             current_content_block.append(element)
-
-#             continue
-
-#         # current_text_block += '\n' + element['content']
-#         current_text_block.append(element)
-    
-
-
-#     all_elements.append(current_content_block)
-
-    
-#     for elem in all_elements[:5]:
-#         print(elem)
-#         print()
-
-
-#     return
 
 def join_content_from_block(block):
     output_str = '\n'.join([ctb['content'].replace('  ', ' ') for ctb in block])
@@ -371,9 +258,10 @@ def join_pdf_data(data):
 
     return all_elements
 
-def parse_pdf_pages(pdf_path: str, skip_pages: list = []):
 
-    iw = ImageWriter_named(PICTURE_FOLDER)
+def parse_pdf_pages(pdf_path: str, picture_folder, doc_name, skip_pages: list = []):
+
+    iw = ImageWriter_named(picture_folder)
 
     total_pages = get_pdf_number_of_pages(pdf_path)
 
@@ -384,7 +272,7 @@ def parse_pdf_pages(pdf_path: str, skip_pages: list = []):
         if (page_ind + 1) in skip_pages:
             continue
 
-        page_data = parse_page_layout(page_layout, page_ind + 1, iw)
+        page_data = parse_page_layout(page_layout, page_ind + 1, iw, doc_name)
 
         pdf_data += page_data
 
@@ -392,8 +280,61 @@ def parse_pdf_pages(pdf_path: str, skip_pages: list = []):
 
     return pdf_data
 
-if __name__ == '__main__':
-    elems = parse_pdf_pages(url, [1, 2, 3, 4, 5])
 
-    with open("gradio_ui/json_output/mydata.json", "w", encoding='utf-8') as output:
-        json.dump(elems, output, indent=3, ensure_ascii=False)
+class Doc_pdf_parser:
+    def __init__(self, PICTURE_FOLDER):
+
+        self.PICTURE_FOLDER = PICTURE_FOLDER
+
+    def get_doc_name(self, url):
+        return os.path.basename(url)[:-4].replace(' ', '_')
+
+    def parse_pdf(self, url: str, skip_pages: list = []):
+        doc_name = self.get_doc_name(url)
+        print(doc_name)
+
+        elems = parse_pdf_pages(url, self.PICTURE_FOLDER, doc_name, skip_pages)
+
+        with open(f"gradio_ui/json_output/{doc_name}.json", "w", encoding='utf-8') as output:
+            json.dump(elems, output, indent=3, ensure_ascii=False)
+
+        # chunks = []
+        docs_list, ids_list = [], []
+
+        for element in elems:
+            current_chunk = element['header']
+
+            for con in element['content']:
+                if con['type'] == 'text':
+                    current_chunk += f"\n{con['content']}"
+                
+                if con['type'] == 'image':
+                    current_chunk += f"\n<img src=\"http://localhost:9000/bucket1/pictures/{con['path']}\">"
+
+            # chunks.append(current_chunk)
+
+            current_id = str(uuid4())
+            current_doc = ChromaDocument(
+                page_content = current_chunk,
+                metadata = {'source': 'document'},
+                id = current_id
+            )
+
+            docs_list.append(current_doc)
+            ids_list.append(current_id)
+
+        return docs_list, ids_list
+
+
+
+if __name__ == '__main__':
+    parser = Doc_pdf_parser(r'C:/Work/Gazprom/LLM/llmChat/gradio_ui/pictures/')
+
+    chunks = parser.parse_pdf(r'C:\Work\Gazprom\LLM\llmChat\data\original_docx\bot\Кандидаты.pdf', 
+                     skip_pages = [1, 2, 3, 4, 5])
+    
+    for doc, doc_id in chunks:
+        print('*'*50)
+        print(doc_id, doc)
+
+

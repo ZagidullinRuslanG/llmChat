@@ -20,7 +20,7 @@ def get_embed_ui():
         return
 
     with gr.Blocks(fill_height=True) as ui:
-        file_input = gr.File(label="Загрузить документы", file_count = "multiple", file_types=['docx'])
+        file_input = gr.File(label="Загрузить документы", file_count = "multiple", file_types=['docx', 'pdf'])
 
         embed_button = gr.Button('Вычислить эмбеддинги')
         clear_vectorstore_button = gr.Button('Очистить БД')

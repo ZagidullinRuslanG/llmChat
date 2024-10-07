@@ -6,6 +6,7 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter 
 from embed_folder.llama_get_emb_func import get_llama_cpp_embeddings
+from embed_folder.pdf_splitter import Doc_pdf_parser
 from langchain_chroma import Chroma
 
 import chromadb
@@ -135,10 +136,18 @@ def load_url(url):
 def load_pdf(url):
     print('Loading pdf...')
 
-    loader = PyPDFLoader(url)
-    data = loader.load()
+    # loader = PyPDFLoader(url)
+    # data = loader.load()
 
-    simple_load(data)
+    # simple_load(data)
+
+    parser = Doc_pdf_parser(cfg.IMAGE_FOLDER)
+
+    docs, ids = parser.parse_pdf(
+        url, 
+        skip_pages = [1, 2, 3, 4, 5])
+    
+    get_vector_store().add_documents(documents = docs, ids = ids)
 
 def load_docx(url):
     print('Loading docx...')
@@ -188,12 +197,13 @@ def get_context_text(question: str, k: int = 1, score_max_thresh: int = 1) -> st
 
 
 def get_context_image(context_list):
-
-    most_valuable_context = context_list[0]
-
-    prefix = 'http://localhost:9000/bucket1/pictures/'
-
     try:
+
+        most_valuable_context = context_list[0]
+
+        prefix = 'http://localhost:9000/bucket1/pictures/'
+
+    
         image_data = most_valuable_context[0].metadata['image']
         
         return prefix + image_data

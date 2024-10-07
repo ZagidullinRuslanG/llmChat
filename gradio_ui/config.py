@@ -23,7 +23,7 @@ class Config:
     USE_GLOSSARY = True
     CHUNK_OVERLAP = 20
     MAX_NEW_TOKENS = 2190
-    TEMPERATURE = 0.4
+    TEMPERATURE = 0.2
     N_GPU_LAYERS = -1
 
     # EMDEDDINGS
