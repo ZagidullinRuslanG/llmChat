@@ -16,3 +16,4 @@ flagged
 gradio_cached_examples
 /data
 /gradio_ui/pictures/*
+/gradio_ui/json_output/*
