@@ -44,5 +44,7 @@ def get_embed_ui():
         df_update_button = gr.Button("Обновить таблицу")
         df_update_button.click(fn = get_df, outputs=[gr_df])
 
+        upload_pictures_button = gr.Button("Загрузить и обновить изображения на облако")
+        upload_pictures_button.click(fn = upload_images_to_minio)
 
         return ui

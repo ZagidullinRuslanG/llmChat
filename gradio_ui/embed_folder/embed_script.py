@@ -17,6 +17,9 @@ from operator import itemgetter
 import pandas as pd
 import json
 
+from embed_folder.minio_loader import MinioLoader
+import time
+
 import torch
 import gc
 
@@ -50,6 +53,8 @@ def add_documents(files):
 
     # for x in range(len(vector_store_from_client.get())):
     #     print(x)
+
+    gr.Info('Embedding complete!')
 
     return 
 
@@ -111,6 +116,7 @@ def reset_and_create_chroma_client():
     get_collection()
 
     print('Chroma client created')
+    gr.Info('Chroma client created')
 
 
 def simple_load(data):
@@ -161,6 +167,7 @@ def load_docx(url):
 
 def add_document(url):
     print(f'Embedding {url}..')
+    gr.Info(f'Embedding {url}..')
 
     if url[-4:] == '.pdf':
         load_pdf(url)
@@ -169,7 +176,7 @@ def add_document(url):
     else:
         load_url(url)
 
-    print("Embedding complete\n")
+    print(f"Embedding of {url} is complete\n")
     return
 
 
@@ -249,3 +256,9 @@ def format_context_to_input(context_list):
         output_str += f'{context[0].page_content}\n<next context>\n'
 
     return output_str
+
+
+def upload_images_to_minio():
+
+    mloader = MinioLoader()
+    mloader.add_folder(cfg.IMAGE_FOLDER)

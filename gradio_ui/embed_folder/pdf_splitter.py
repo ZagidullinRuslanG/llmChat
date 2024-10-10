@@ -11,6 +11,13 @@ import re
 import tqdm
 import json
 from langchain_core.documents import Document as ChromaDocument
+from pdfminer.pdfcolor import LITERAL_DEVICE_CMYK, LITERAL_DEVICE_GRAY, LITERAL_DEVICE_RGB
+from pdfminer.pdftypes import (
+    LITERALS_DCT_DECODE,
+    LITERALS_JBIG2_DECODE,
+    LITERALS_JPX_DECODE,
+    LITERALS_FLATE_DECODE,
+)
 from uuid import uuid4
 
 UPPER_BOUNDARY = 810
@@ -106,6 +113,38 @@ class ImageWriter_named(ImageWriter):
 
         path = os.path.join(self.outdir, name)
         return name, path
+    
+    def export_image(self, image: LTImage) -> str:
+        """Save an LTImage to disk"""
+        (width, height) = image.srcsize
+
+        filters = image.stream.get_filters()
+
+        if len(filters) == 1 and filters[0][0] in LITERALS_DCT_DECODE:
+            name = self._save_jpeg(image)
+
+        elif len(filters) == 1 and filters[0][0] in LITERALS_JPX_DECODE:
+            name = self._save_jpeg2000(image)
+
+        elif self._is_jbig2_iamge(image):
+            name = self._save_jbig2(image)
+
+        elif len(filters) == 1 and filters[0][0] in LITERALS_FLATE_DECODE:
+            name = self._save_bytes(image)
+
+        elif image.bits == 1:
+            name = self._save_bmp(image, width, height, (width + 7) // 8, image.bits)
+
+        elif image.bits == 8 and LITERAL_DEVICE_RGB in image.colorspace:
+            name = self._save_bmp(image, width, height, width * 3, image.bits * 3)
+
+        elif image.bits == 8 and LITERAL_DEVICE_GRAY in image.colorspace:
+            name = self._save_bmp(image, width, height, width, image.bits)
+            
+        else:
+            name = self._save_raw(image)
+
+        return name
 
 def parse_page_layout(page_layout, page_number: int, iw: ImageWriter_named, doc_name: str, verbose = False):
 
@@ -309,14 +348,20 @@ class Doc_pdf_parser:
                     current_chunk += f"\n{con['content']}"
                 
                 if con['type'] == 'image':
-                    current_chunk += f"\n<img src=\"http://localhost:9000/bucket1/pictures/{con['path']}\">"
+                    current_chunk += f"\n<img \"{con['path']}\">"
 
             # chunks.append(current_chunk)
 
             current_id = str(uuid4())
             current_doc = ChromaDocument(
                 page_content = current_chunk,
-                metadata = {'source': 'document'},
+                metadata = {
+                    'source': 'document', 
+                    'doc_name': f'{doc_name}',
+                    'first_page_number': element['first_page_number'],
+                    'last_page_number': element['last_page_number']
+                },
+                
                 id = current_id
             )
 
@@ -330,11 +375,8 @@ class Doc_pdf_parser:
 if __name__ == '__main__':
     parser = Doc_pdf_parser(r'C:/Work/Gazprom/LLM/llmChat/gradio_ui/pictures/')
 
-    chunks = parser.parse_pdf(r'C:\Work\Gazprom\LLM\llmChat\data\original_docx\bot\Кандидаты.pdf', 
+    docs, ids = parser.parse_pdf(r'C:\Work\Gazprom\LLM\llmChat\data\original_docx\bot\Кандидаты.pdf', 
                      skip_pages = [1, 2, 3, 4, 5])
-    
-    for doc, doc_id in chunks:
-        print('*'*50)
-        print(doc_id, doc)
 
+    print(docs)
 

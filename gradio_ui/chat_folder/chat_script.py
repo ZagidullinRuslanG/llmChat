@@ -140,13 +140,13 @@ def stream_response(*args):
 
                 current_context = model.current_context
                 embed_context_log = format_context_to_log(current_context)
-                context_image = get_context_image(current_context)
+                # context_image = get_context_image(current_context)
 
-                print(f'{context_image=}')
+                # print(f'{context_image=}')
 
-                if not (context_image is None):
+                # if not (context_image is None):
                     
-                    partial_message += f'<img src="{context_image}">\n'
+                #     partial_message += f'<img src="{context_image}">\n'
 
             response_chunk = ""
 
@@ -156,6 +156,9 @@ def stream_response(*args):
                 response_chunk = response.content
 
             partial_message += response_chunk
+
+
+            partial_message = partial_message.replace('<img "', f'<img src="{cfg.PICTURE_FOLDER_URL}')
 
             # print(response_chunk, end = '')
 

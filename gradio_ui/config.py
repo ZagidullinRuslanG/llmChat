@@ -14,7 +14,7 @@ class Config:
 
     
     # Настройка Ollama
-    START_MODEL_NAME = 'llama3.1:latest'
+    START_MODEL_NAME = 'qwen2.5:latest'
     
     # RETRIEVER
     SIMILARITY_TOP_K = 10
@@ -31,6 +31,7 @@ class Config:
     EMBEDDING_MODEL_PATH = r"C:\Work\Gazprom\LLM\llmChat\data\weights\intfloat_multilingual-e5-large"
     EMBEDDING_MODEL_KWARGS = {"device": "cuda:0"}
     COLLECTION_NAME = 'docs'
+    PICTURE_FOLDER_URL = 'http://localhost:9000/bucket1/'
 
     IMAGE_FOLDER = r'C:\Work\Gazprom\LLM\llmChat\gradio_ui\pictures'
 
